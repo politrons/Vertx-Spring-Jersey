@@ -11,10 +11,8 @@
 
 							http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd">
 
-    <!--<import resource="classpath*:coreApplicationContext.xml"/>-->
 
     <context:annotation-config/>
-    <!--<aop:aspectj-autoproxy />-->
 
     <task:scheduler id="taskScheduler"/>
     <task:executor id="taskExecutor" pool-size="10"/>
