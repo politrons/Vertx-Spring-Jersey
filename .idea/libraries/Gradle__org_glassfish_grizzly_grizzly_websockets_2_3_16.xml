@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: org.glassfish.grizzly:grizzly-websockets:2.3.16">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.glassfish.grizzly/grizzly-websockets/2.3.16/bd3dfffb52f1ec1b5e7be2832f46a76abb4e87b7/grizzly-websockets-2.3.16.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.glassfish.grizzly/grizzly-websockets/2.3.16/bffe8426de2ffca7b5a1e01f6cb46aebe7cf9e7c/grizzly-websockets-2.3.16-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

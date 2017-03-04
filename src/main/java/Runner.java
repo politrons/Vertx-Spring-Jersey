@@ -61,7 +61,7 @@ public class Runner {
                 .toBlocking()
                 .first();
         System.out.println("******************************************************");
-        System.out.println("F2E started with Vertx successfully. Http Port: " + port);
+        System.out.println("Vertx server started successfully. Http Port: " + port);
         System.out.println("******************************************************");
     }
 }
