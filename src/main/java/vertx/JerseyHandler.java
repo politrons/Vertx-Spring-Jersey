@@ -17,8 +17,6 @@ import javax.ws.rs.core.SecurityContext;
 import java.io.OutputStream;
 import java.net.URI;
 import java.security.Principal;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -27,9 +25,9 @@ import static javax.ws.rs.core.Response.StatusType;
 
 /**
  * Created by Pablo Perez Garcia on 28/02/2017.
- *
+ * <p>
  * This Handler class it´s the glue between Jersey facade and Vertx
- *
+ * <p>
  * We will intercept the Vertx RoutingContext and we will mutate to a Jersey request.
  * Also for the response we will create a ContainerResponseWriter through the Vertx HttpServerResponse.
  */
@@ -37,33 +35,33 @@ public class JerseyHandler implements Handler<RoutingContext> {
 
     private final static DefaultSecurityContext DEFAULT_SECURITY_CONTEXT = new DefaultSecurityContext();
 
-    private final ApplicationHandler jerseyRequestHandler;
-    private final URI baseUri;
+    private final URI uri;
+    private final ApplicationHandler jerseyHandler;
 
-    JerseyHandler(URI baseUri, ResourceConfig jerseyConfig) {
-        this.baseUri = baseUri;
-        this.jerseyRequestHandler = new ApplicationHandler(jerseyConfig);
+    JerseyHandler(URI uri, ResourceConfig jerseyConfig) {
+        this.uri = uri;
+        this.jerseyHandler = new ApplicationHandler(jerseyConfig);
     }
 
     /**
      * Handle of Vertx route, all request will be routed into this handle.
+     *
      * @param context Represents the context for the handling of a request in Vert.x-Web.
      */
     @Override
     public void handle(final RoutingContext context) {
-        final ContainerRequest jerseyRequest = createJerseyRequest(baseUri, context.request());
+        final ContainerRequest jerseyRequest = createJerseyRequest(uri, context.request());
         jerseyRequest.setEntityStream(new ByteBufInputStream(context.getBody().getByteBuf()));
         jerseyRequest.setWriter(new ResponseWriter(context.request().response()));
-        jerseyRequestHandler.handle(jerseyRequest);
+        jerseyHandler.handle(jerseyRequest);
     }
 
     /**
      * Create a ContainerRequest to be interpreted by ApplicationHandler of Jersey
-     *
      */
     private ContainerRequest createJerseyRequest(URI baseUri, HttpServerRequest request) {
         final ContainerRequest result = new ContainerRequest(baseUri, baseUri.resolve(request.uri()),
-                request.method().name(), getSecurityContext(request), new MapPropertiesDelegate());
+                request.method().name(), DEFAULT_SECURITY_CONTEXT, new MapPropertiesDelegate());
         copyHttpHeadersFromTo(request, result);
         return result;
     }
@@ -73,20 +71,12 @@ public class JerseyHandler implements Handler<RoutingContext> {
      */
     private void copyHttpHeadersFromTo(HttpServerRequest from, ContainerRequest to) {
         final MultivaluedMap<String, String> headers = to.getHeaders();
-        for (Map.Entry<String, String> sourceHeader : from.headers()) {
-            headers.putSingle(sourceHeader.getKey(), sourceHeader.getValue());
-        }
+        from.headers().forEach(source -> headers.putSingle(source.getKey(), source.getValue()));
     }
-
-    @SuppressWarnings("UnusedParameters")
-    private SecurityContext getSecurityContext(HttpServerRequest request) {
-        return DEFAULT_SECURITY_CONTEXT;
-    }
-
 
     /**
      * A Request-scoped I/O container response writer.
-     *
+     * <p>
      * I/O container sends a new instance of the response writer with every request as part of the call to the Jersey application
      */
     private static class ResponseWriter implements ContainerResponseWriter {
@@ -100,18 +90,16 @@ public class JerseyHandler implements Handler<RoutingContext> {
         }
 
         @Override
-        public OutputStream writeResponseStatusAndHeaders(long contentLength, ContainerResponse responseContext) throws ContainerException {
-            setStatus(responseContext);
-            addHeaders(responseContext);
+        public OutputStream writeResponseStatusAndHeaders(long contentLength, ContainerResponse rc) throws ContainerException {
+            setStatus(rc);
+            addHeaders(rc);
             return new VertxOutputStream(response);
         }
 
         private void addHeaders(ContainerResponse responseContext) {
             final MultivaluedMap<String, String> sourceHeaders = responseContext.getStringHeaders();
             final MultiMap responseHeaders = response.headers();
-            for (final Map.Entry<String, List<String>> e : sourceHeaders.entrySet()) {
-                responseHeaders.add(e.getKey(), e.getValue());
-            }
+            sourceHeaders.entrySet().forEach(entry -> responseHeaders.add(entry.getKey(), entry.getValue()));
         }
 
         private void setStatus(ContainerResponse responseContext) {
@@ -132,19 +120,6 @@ public class JerseyHandler implements Handler<RoutingContext> {
             response.setStatusMessage(INTERNAL_SERVER_ERROR.reasonPhrase());
             commit();
             rethrow(error);
-        }
-
-        /**
-         * Rethrow the original exception as required by JAX-RS, 3.3.4
-         *
-         * @param error throwable to be re-thrown
-         */
-        private void rethrow(Throwable error) {
-            if (error instanceof RuntimeException) {
-                throw (RuntimeException) error;
-            } else {
-                throw new ContainerException(error);
-            }
         }
 
         @Override
@@ -170,6 +145,19 @@ public class JerseyHandler implements Handler<RoutingContext> {
          */
         private void end() {
             response.end();
+        }
+
+        /**
+         * Rethrow the original exception as required by JAX-RS, 3.3.4
+         *
+         * @param error throwable to be re-thrown
+         */
+        private void rethrow(Throwable error) {
+            if (error instanceof RuntimeException) {
+                throw (RuntimeException) error;
+            } else {
+                throw new ContainerException(error);
+            }
         }
     }
 
