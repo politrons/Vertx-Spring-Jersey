@@ -1,8 +1,8 @@
-# Vertx-Spring-Jersey
-
 Author  Pablo Perez Garcia
 
 ![My image](src/main/resources/img/logof.png)
+
+#
 
 Implementation that glue the use of Verxt server with Spring for DI and Jersey wtih JAX-RS for resources
 
