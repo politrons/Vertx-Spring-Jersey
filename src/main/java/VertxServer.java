@@ -6,7 +6,8 @@ import vertx.JerseyRouter;
 /**
  * Created by Pablo Perez Garcia on 28/02/2017.
  * <p>
- * Vertx server to run F2E using our own JerseyHandler implementation to continue using JAX-RS annotations
+ * Vertx server to run F2E using our own JerseyRouter and JerseyHandler implementation
+ * to continue using JAX-RS annotations
  */
 public class VertxServer extends AbstractVerticle {
 
