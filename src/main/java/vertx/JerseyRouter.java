@@ -5,9 +5,10 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.impl.RouterImpl;
 import org.glassfish.jersey.server.ResourceConfig;
-import spring.ApplicationContextUtils;
 
 import java.net.URI;
+
+import static spring.ApplicationContextUtils.getResourceConfig;
 
 /**
  * Created by pabloperezgarcia on 05/03/2017.
@@ -31,7 +32,7 @@ public class JerseyRouter extends RouterImpl {
     private JerseyRouter(Vertx vertx, String applicationContext, String packageResource,
                          String host, Integer port) {
         super(vertx);
-        this.rc = ApplicationContextUtils.getResourceConfig(applicationContext, packageResource);
+        this.rc = getResourceConfig(applicationContext, packageResource);
         this.route().handler(BodyHandler.create());
         this.route().handler(createJerseyHandler(host, String.valueOf(port)));
     }
