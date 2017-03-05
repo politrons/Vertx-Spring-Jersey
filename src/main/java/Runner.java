@@ -19,7 +19,7 @@ public class Runner {
 
     private static void initVertxServer() {
         DeploymentOptions options = new DeploymentOptions();
-        final int port = 1981;
+        final int port = 8888;
         options.setConfig(new JsonObject()
                 .put("host", "http://0.0.0.0:")
                 .put("port", port));
