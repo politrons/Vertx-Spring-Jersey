@@ -6,6 +6,8 @@ Author  Pablo Perez Garcia
 
 Implementation that glue the use of Verxt server with Spring for DI and Jersey wtih JAX-RS for resources
 
+* **Configuration**
+
     * [Router] (src/main/java/vertx/JerseyRouter.java)
     * [Handler] (src/main/java/vertx/JerseyHandler.java)
     * [Verticle] (src/main/java/VertxServer.java)
