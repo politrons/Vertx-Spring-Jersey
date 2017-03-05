@@ -60,18 +60,18 @@ public class JerseyHandler implements Handler<RoutingContext> {
      * Create a ContainerRequest to be interpreted by ApplicationHandler of Jersey
      */
     private ContainerRequest createJerseyRequest(URI baseUri, HttpServerRequest request) {
-        final ContainerRequest result = new ContainerRequest(baseUri, baseUri.resolve(request.uri()),
+        final ContainerRequest cr = new ContainerRequest(baseUri, baseUri.resolve(request.uri()),
                 request.method().name(), DEFAULT_SECURITY_CONTEXT, new MapPropertiesDelegate());
-        copyHttpHeadersFromTo(request, result);
-        return result;
+        copyHttpHeaders(request, cr);
+        return cr;
     }
 
     /**
      * Copy the headers from vertx request to jersey request
      */
-    private void copyHttpHeadersFromTo(HttpServerRequest from, ContainerRequest to) {
-        final MultivaluedMap<String, String> headers = to.getHeaders();
-        from.headers().forEach(source -> headers.putSingle(source.getKey(), source.getValue()));
+    private void copyHttpHeaders(HttpServerRequest request, ContainerRequest cr) {
+        final MultivaluedMap<String, String> headers = cr.getHeaders();
+        request.headers().forEach(source -> headers.putSingle(source.getKey(), source.getValue()));
     }
 
     /**
@@ -82,11 +82,11 @@ public class JerseyHandler implements Handler<RoutingContext> {
     private static class ResponseWriter implements ContainerResponseWriter {
 
         private final HttpServerResponse response;
-        private final JerseyRequestTimeoutHandler requestTimeoutHandler;
+        private final JerseyRequestTimeoutHandler timeoutHandler;
 
         ResponseWriter(HttpServerResponse response) {
             this.response = response;
-            this.requestTimeoutHandler = new JerseyRequestTimeoutHandler(this, new DefaultEventExecutor());
+            this.timeoutHandler = new JerseyRequestTimeoutHandler(this, new DefaultEventExecutor());
         }
 
         @Override
@@ -97,9 +97,10 @@ public class JerseyHandler implements Handler<RoutingContext> {
         }
 
         private void addHeaders(ContainerResponse responseContext) {
-            final MultivaluedMap<String, String> sourceHeaders = responseContext.getStringHeaders();
             final MultiMap responseHeaders = response.headers();
-            sourceHeaders.entrySet().forEach(entry -> responseHeaders.add(entry.getKey(), entry.getValue()));
+            responseContext.getStringHeaders()
+                    .entrySet()
+                    .forEach(entry -> responseHeaders.add(entry.getKey(), entry.getValue()));
         }
 
         private void setStatus(ContainerResponse responseContext) {
@@ -109,9 +110,13 @@ public class JerseyHandler implements Handler<RoutingContext> {
             response.setChunked(responseContext.isChunked());
         }
 
+        /**
+         * This method should be called by the container at the end of the
+         * handle method to make sure that the ResponseWriter was committed.
+         */
         @Override
         public void commit() {
-            end();
+            response.end();
         }
 
         @Override
@@ -119,17 +124,17 @@ public class JerseyHandler implements Handler<RoutingContext> {
             response.setStatusCode(INTERNAL_SERVER_ERROR.code());
             response.setStatusMessage(INTERNAL_SERVER_ERROR.reasonPhrase());
             commit();
-            rethrow(error);
+            throwError(error);
         }
 
         @Override
         public boolean suspend(long time, TimeUnit unit, TimeoutHandler handler) {
-            return requestTimeoutHandler.suspend(time, unit, handler);
+            return timeoutHandler.suspend(time, unit, handler);
         }
 
         @Override
         public void setSuspendTimeout(long time, TimeUnit unit) throws IllegalStateException {
-            requestTimeoutHandler.setSuspendTimeout(time, unit);
+            timeoutHandler.setSuspendTimeout(time, unit);
         }
 
         @Override
@@ -138,21 +143,11 @@ public class JerseyHandler implements Handler<RoutingContext> {
         }
 
         /**
-         * Commits the response and logs a warning message.
-         * <p>
-         * This method should be called by the container at the end of the
-         * handle method to make sure that the ResponseWriter was committed.
-         */
-        private void end() {
-            response.end();
-        }
-
-        /**
          * Rethrow the original exception as required by JAX-RS, 3.3.4
          *
          * @param error throwable to be re-thrown
          */
-        private void rethrow(Throwable error) {
+        private void throwError(Throwable error) {
             if (error instanceof RuntimeException) {
                 throw (RuntimeException) error;
             } else {
